@@ -134,3 +134,15 @@ def train(model, loader, epochs=10):
             print(f'  Epoch [{epoch+1}/{epochs}], Loss: {running_loss/len(loader):.4f}, Acc: {acc:.2f}%')
     
     return model
+
+def test(model, loader):
+    """Test the model"""
+    model.eval()
+    preds, true = [], []
+    with torch.no_grad():
+        for images, labels in loader:
+            images = images.to(device)
+            outputs = model(images)
+            preds.extend(outputs.argmax(1).cpu().numpy())
+            true.extend(labels.numpy())
+    return preds, true
