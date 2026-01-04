@@ -65,3 +65,42 @@ def load_and_split_data(data_dir):
         print(f"Fold {i+1}: {len(fold['image_paths'])} images")
     
     return folds, class_names
+
+class CelebDataset(Dataset):
+    """Dataset class for celebrity faces"""
+    def __init__(self, paths, labels, transform=None):
+        self.paths = paths
+        self.labels = labels
+        self.transform = transform
+    
+    def __len__(self):
+        return len(self.paths)
+    
+    def __getitem__(self, idx):
+        image = Image.open(self.paths[idx]).convert('RGB')
+        if self.transform:
+            image = self.transform(image)
+        return image, self.labels[idx]
+
+# Data transforms
+train_transform = transforms.Compose([
+    transforms.Resize((224, 224)),
+    transforms.RandomHorizontalFlip(),
+    transforms.RandomRotation(10),
+    transforms.ColorJitter(brightness=0.2, contrast=0.2),
+    transforms.ToTensor(),
+    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+])
+
+test_transform = transforms.Compose([
+    transforms.Resize((224, 224)),
+    transforms.ToTensor(),
+    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+])
+
+def create_model(num_classes):
+    """Create ResNet50 pre-trained model"""
+    print("Loading pre-trained ResNet50...")
+    model = models.resnet50(weights='IMAGENET1K_V1')
+    model.fc = nn.Linear(model.fc.in_features, num_classes)
+    return model.to(device)
