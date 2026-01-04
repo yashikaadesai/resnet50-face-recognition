@@ -104,3 +104,33 @@ def create_model(num_classes):
     model = models.resnet50(weights='IMAGENET1K_V1')
     model.fc = nn.Linear(model.fc.in_features, num_classes)
     return model.to(device)
+
+def train(model, loader, epochs=10):
+    """Train the model"""
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-4)
+    model.train()
+    
+    for epoch in range(epochs):
+        running_loss = 0.0
+        correct = 0
+        total = 0
+        
+        for images, labels in loader:
+            images, labels = images.to(device), labels.to(device)
+            optimizer.zero_grad()
+            outputs = model(images)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+            
+            running_loss += loss.item()
+            _, predicted = outputs.max(1)
+            total += labels.size(0)
+            correct += predicted.eq(labels).sum().item()
+        
+        if (epoch + 1) % 2 == 0 or epoch == 0:
+            acc = 100. * correct / total
+            print(f'  Epoch [{epoch+1}/{epochs}], Loss: {running_loss/len(loader):.4f}, Acc: {acc:.2f}%')
+    
+    return model
