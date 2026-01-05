@@ -146,3 +146,51 @@ def test(model, loader):
             preds.extend(outputs.argmax(1).cpu().numpy())
             true.extend(labels.numpy())
     return preds, true
+
+def perform_loocv(folds, class_names, num_epochs=10, batch_size=32):
+    """Perform Leave-One-Out Cross-Validation"""
+    num_classes = len(class_names)
+    all_preds, all_true = [], []
+    fold_accuracies = []
+    
+    for test_idx in range(10):
+        print(f"\n{'='*60}")
+        print(f"FOLD {test_idx+1}/10")
+        print(f"{'='*60}")
+        
+        
+        train_paths, train_labels = [], []
+        for i in range(10):
+            if i != test_idx:
+                train_paths.extend(folds[i]['image_paths'])
+                train_labels.extend(folds[i]['labels'])
+        
+        test_paths = folds[test_idx]['image_paths']
+        test_labels = folds[test_idx]['labels']
+        
+        print(f"Training: {len(train_paths)} images")
+        print(f"Testing: {len(test_paths)} images")
+        
+        train_loader = DataLoader(
+            CelebDataset(train_paths, train_labels, train_transform),
+            batch_size=batch_size, shuffle=True, num_workers=0
+        )
+        test_loader = DataLoader(
+            CelebDataset(test_paths, test_labels, test_transform),
+            batch_size=batch_size, shuffle=False, num_workers=0
+        )
+        
+        model = create_model(num_classes)
+        print("\nTraining...")
+        model = train(model, train_loader, epochs=num_epochs)
+        print("Testing...")
+        preds, true = test(model, test_loader)
+        
+        fold_acc = accuracy_score(true, preds)
+        fold_accuracies.append(fold_acc)
+        all_preds.extend(preds)
+        all_true.extend(true)
+        
+        print(f"\nFold {test_idx+1} Accuracy: {fold_acc*100:.2f}%")
+    
+    return all_preds, all_true, fold_accuracies
