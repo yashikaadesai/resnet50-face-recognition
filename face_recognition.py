@@ -194,3 +194,63 @@ def perform_loocv(folds, class_names, num_epochs=10, batch_size=32):
         print(f"\nFold {test_idx+1} Accuracy: {fold_acc*100:.2f}%")
     
     return all_preds, all_true, fold_accuracies
+
+def analyze_results(all_preds, all_true, class_names):
+    """Analyze and visualize results"""
+    
+    overall_acc = accuracy_score(all_true, all_preds)
+    
+    print("\n" + "="*60)
+    print("FINAL RESULTS")
+    print("="*60)
+    print(f"Overall Accuracy: {overall_acc*100:.2f}%")
+    
+    cm = confusion_matrix(all_true, all_preds)
+    
+    # Plot confusion matrix
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
+                xticklabels=class_names, yticklabels=class_names)
+    plt.title('Confusion Matrix - Celebrity Face Recognition', fontsize=14)
+    plt.ylabel('True Label', fontsize=12)
+    plt.xlabel('Predicted Label', fontsize=12)
+    plt.xticks(rotation=45, ha='right')
+    plt.tight_layout()
+    plt.savefig('confusion_matrix.png', dpi=300, bbox_inches='tight')
+    print("\nConfusion matrix saved as 'confusion_matrix.png'")
+    plt.show()
+    
+    # Confusion analysis
+    print("\n" + "="*60)
+    print("CONFUSION ANALYSIS")
+    print("="*60)
+    print("\nMost Confused Pairs:")
+    print("-" * 60)
+    
+    confusions = []
+    for i in range(len(cm)):
+        for j in range(len(cm)):
+            if i != j and cm[i][j] > 0:
+                confusions.append({
+                    'true': class_names[i],
+                    'predicted': class_names[j],
+                    'count': cm[i][j]
+                })
+    
+    confusions = sorted(confusions, key=lambda x: x['count'], reverse=True)
+    
+    for idx, conf in enumerate(confusions[:10], 1):
+        print(f"{idx}. {conf['true']} misclassified as {conf['predicted']}: {conf['count']} times")
+    
+    # Per-class accuracy
+    print("\n" + "="*60)
+    print("PER-CLASS ACCURACY")
+    print("="*60)
+    for i in range(len(cm)):
+        total = cm[i].sum()
+        correct = cm[i][i]
+        acc = (correct / total * 100) if total > 0 else 0
+        print(f"{class_names[i]:<30}: {acc:.2f}% ({correct}/{total} correct)")
+    
+    return cm
+
